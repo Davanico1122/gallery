@@ -16,7 +16,6 @@
             height: 100%;
             font-family: 'Poppins', sans-serif;
             overflow-x: hidden;
-            cursor: none;
         }
 
         #scrollDistance {
@@ -83,7 +82,6 @@
             transform: translate(-50%, -50%);
             width: 300px;
             height: 200px;
-            cursor: pointer;
             border-radius: 15px;
             overflow: hidden;
             box-shadow: 0 20px 40px rgba(0,0,0,0.3);
@@ -173,35 +171,8 @@
             transform: scale(1.1);
         }
 
-        #customCursor {
-            position: fixed;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #333;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 1000;
-            transition: all 0.3s ease;
-            mix-blend-mode: difference;
-        }
-
-        #customCursor.hover {
-            width: 60px;
-            height: 60px;
-            border-width: 3px;
-            border-color: #666;
-        }
-
         /* Responsive Design */
         @media (max-width: 768px) {
-            html, body {
-                cursor: auto;
-            }
-            
-            #customCursor {
-                display: none;
-            }
-            
             .image-container {
                 width: 250px;
                 height: 167px;
@@ -223,33 +194,6 @@
                 font-size: 1rem;
                 padding: 0 20px;
             }
-        }
-
-        /* Preloader untuk gambar */
-        .image-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
-                        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
-                        linear-gradient(45deg, transparent 75%, #f0f0f0 75%), 
-                        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
-            background-size: 20px 20px;
-            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-            animation: loading 1s linear infinite;
-            z-index: 1;
-        }
-
-        .image-container.loaded::before {
-            display: none;
-        }
-
-        @keyframes loading {
-            0% { background-position: 0 0, 0 10px, 10px -10px, -10px 0px; }
-            100% { background-position: 20px 20px, 20px 30px, 30px 10px, 10px 20px; }
         }
     </style>
 </head>
@@ -306,21 +250,17 @@
         <div id="detailDescription"></div>
     </div>
 
-    <div id="customCursor"></div>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js"></script>
     
     <script>
         // Register GSAP plugins
-        gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+        gsap.registerPlugin(ScrollTrigger);
         
         // Variables
         let isDetailOpen = false;
         const isMobile = window.innerWidth <= 768;
         const images = document.querySelectorAll('.image-container');
-        const cursor = document.getElementById('customCursor');
         
         // Initialize
         window.addEventListener('load', () => {
@@ -367,7 +307,7 @@
         function setupScrollAnimations() {
             const tl = gsap.timeline({
                 scrollTrigger: {
-                    trigger: "#scrollDistance",
+                    trigger: "#scrollDistance", 
                     start: "top top",
                     end: "bottom bottom",
                     scrub: 1,
@@ -378,92 +318,61 @@
                     }
                 }
             });
-            
+
             // Initial scroll text animation
             tl.to("#scrollText", {
                 scale: 3,
                 opacity: 0,
                 duration: 0.3,
                 ease: "power2.in"
-            }, 0)
-            
-            // Images entrance animation
-            .to(images, {
-                z: 0,
-                opacity: 1,
-                scale: 1,
-                stagger: 0.1,
-                duration: 0.5,
-                ease: "power2.out"
-            }, 0.2)
-            
-            // Enable pointer events
-            .to(images, {
-                duration: 0.01,
-                pointerEvents: "auto",
-                stagger: 0.1
-            }, 0.4)
-            
-            // Images exit animation
-            .to(images, {
-                z: 1000,
-                opacity: 0,
-                scale: 0.8,
-                stagger: 0.1,
-                duration: 0.4,
-                ease: "power2.in"
-            }, 0.8)
-            
-            // Disable pointer events
-            .to(images, {
-                duration: 0.01,
-                pointerEvents: "none",
-                stagger: 0.1
-            }, 0.9)
+            }, 0);
+
+            // Create individual animations for each image
+            images.forEach((container, index) => {
+                const startPos = 0.2 + (index * 0.07);
+                const endPos = startPos + 0.1;
+                
+                // Entrance animation
+                tl.to(container, {
+                    z: 0,
+                    opacity: 1,
+                    scale: 1,
+                    duration: 0.5,
+                    ease: "power2.out",
+                    onStart: () => {
+                        container.style.pointerEvents = 'auto';
+                    }
+                }, startPos);
+
+                // Exit animation
+                tl.to(container, {
+                    z: 1000,
+                    opacity: 0,
+                    scale: 0.8,
+                    duration: 0.4,
+                    ease: "power2.in",
+                    onComplete: () => {
+                        container.style.pointerEvents = 'none';
+                    }
+                }, endPos);
+            });
             
             // End text animation with blur effect
-            .to("#endText", {
+            tl.to("#endText", {
                 opacity: 1,
                 filter: "blur(0px)",
                 scale: 1,
                 duration: 0.5,
                 ease: "power2.out"
-            }, 0.95);
+            }, 0.2 + (images.length * 0.07) + 0.1);
         }
         
         function setupInteractions() {
-            // Mouse movement parallax (desktop only)
-            if (!isMobile) {
-                document.addEventListener('mousemove', (e) => {
-                    const x = (e.clientX / window.innerWidth) * 2 - 1;
-                    const y = (e.clientY / window.innerHeight) * 2 - 1;
-                    
-                    gsap.to(images, {
-                        duration: 0.5,
-                        rotationY: x * 5,
-                        rotationX: -y * 5,
-                        transformOrigin: "center center",
-                        ease: "power2.out"
-                    });
-                    
-                    // Custom cursor
-                    gsap.to(cursor, {
-                        duration: 0.3,
-                        x: e.clientX,
-                        y: e.clientY,
-                        ease: "power2.out"
-                    });
-                });
-            }
-            
             // Image interactions
             images.forEach((container) => {
                 const img = container.querySelector('img');
                 
                 container.addEventListener('mouseenter', () => {
-                    if (!isMobile) {
-                        cursor.classList.add('hover');
-                    }
                     gsap.to(container, {
                         duration: 0.3,
                         z: 100,
@@ -473,9 +382,6 @@
                 });
                 
                 container.addEventListener('mouseleave', () => {
-                    if (!isMobile) {
-                        cursor.classList.remove('hover');
-                    }
                     gsap.to(container, {
                         duration: 0.3,
                         z: 0,
